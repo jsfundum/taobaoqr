@@ -2,86 +2,267 @@
 
 <head>
     <link rel="stylesheet" href="//unpkg.com/element-ui@2.4.6/lib/theme-chalk/index.css">
+    <style>
+        .hide {
+            display: none
+        }
+    </style>
     <script src="//unpkg.com/vue@2.5.17/dist/vue.js"></script>
     <script src="//unpkg.com/element-ui@2.4.6/lib/index.js"></script>
     <script src="./third_party/qrcode.js"></script>
 </head>
 
 <body>
-    <div id="app" style="max-width: 960px; margin: 0 auto;">
-        <div>
-            <div style="float:left">
-                <h1>淘宝QR生成器</h1>
-            </div>
-            <div id="self" style="float:right"></div>
-        </div>
-        <div style="margin: 20px 0; clear: both"></div>
-        <el-row>
-            <el-col :span="11">
-                查询词：
-                <el-input v-model="parameters.query" placeholder="查询词"></el-input>
-            </el-col>
-            <el-col :span="2">&nbsp;
-            </el-col>
-            <el-col :span="11">
-                价格：
-                <el-input v-model="parameters.price" placeholder="价格"></el-input>
-            </el-col>
-        </el-row>
-        <div style="margin: 20px 0; "></div>
-        <el-row>
-            链接: <a :href="url">{{ url }}</a>
-        </el-row>
-        <div style="margin: 20px 0; "></div>
-        <el-row>
-            <el-col :span="24 ">
-                <div id="qrcode"></div>
-            </el-col>
-        </el-row>
-        <div style="margin: 20px 0; "></div>
-        <iframe id="taobao" width="100%" height="100%"></iframe>
+    <div id="app">
+        <el-container>
+            <el-aside width="400px">
+                <el-popover placement="bottom" trigger="click" v-on:show="showQr">
+                    <div>
+                        <p>当前页面QR码:</p>
+                        <div id="selfQr">
+                        </div>
+                    </div>
+                    <h1 slot="reference">淘宝搜索QR码生成器</h1>
+                </el-popover>
+                <template v-for="key in keyList">
+                    <div style="margin: 20px 0; clear: both"></div>
+                    <el-row>
+                        <el-col :span="5">
+                            <el-checkbox v-model="persisted.parameters[key].enable">{{ getProperty(key).name }}</el-checkbox>
+                        </el-col>
+                        <el-col :span="19">
+                            <template v-if="getProperty(key).type == 'string' || getProperty(key).type == 'number'">
+                                <el-input v-model="persisted.parameters[key].value" :placeholder="getProperty(key).name" :disabled="!persisted.parameters[key].enable"></el-input>
+                            </template>
+                            <template v-if="getProperty(key).type == 'single'">
+                                <template v-for="value in getProperty(key).values">
+                                    <el-radio v-model="persisted.parameters[key].value" :label="value.value" :disabled="!persisted.parameters[key].enable">
+                                        {{ value.name }}
+                                    </el-radio>
+                                </template>
+                            </template>
+                            <template v-if="getProperty(key).type == 'multi'">
+                                <el-checkbox-group v-model="persisted.parameters[key].value" :disabled="!persisted.parameters[key].enable">
+                                    <template v-for="value in getProperty(key).values">
+                                        <el-checkbox :label="value.value">{{ value.name }}</el-checkbox>
+                                    </template>
+                                </el-checkbox-group>
+                            </template>
+                        </el-col>
+                    </el-row>
+                </template>
+            </el-aside>
+            <el-main>
+                <div style="margin: 20px 0">
+                    <span v-if="!persisted.configuration.editUrl">
+                        链接: <a :href="url">{{ url }}</a>
+                    </span>
+                    <span v-if="persisted.configuration.editUrl">
+                        链接: <el-input v-model="persisted.configuration.customUrl" placeholder="链接"></el-input>
+                    </span>
+                    <!-- <el-switch style="margin: 0 10px 0 0" v-model="persisted.configuration.editUrl"></el-switch> -->
+                </div>
+                <div style="margin: 20px 0"></div>
+                <div>
+                    <el-switch v-model="persisted.configuration.showQr" active-text="显示QR码"></el-switch>
+                </div>
+                <el-row :class="{hide: !persisted.configuration.showQr}">
+                    <div style="margin: 20px 0"></div>
+                    <el-col :span="24">
+                        <div id="qrcode"></div>
+                    </el-col>
+                </el-row>
+                <div style="margin: 20px 0"></div>
+                <div>
+                    <el-switch style="margin: 0 10px 0 0" v-model="persisted.configuration.showIframe" active-text="显示淘宝页面">
+                    </el-switch>
+                </div>
+                <div style="margin: 20px 0"></div>
+                <template v-if="persisted.configuration.showIframe">
+                    <iframe :src="url" width="100%" height="100%"></iframe>
+                </template>
+            </el-main>
+        </el-container>
     </div>
 </body>
 
 <script>
-    function getUrl(parameters) {
-        const q = encodeURIComponent(parameters.query);
-        const p = encodeURIComponent(parameters.price);
-        return `https://s.m.taobao.com/h5?q=%3Cbr/%3E${q}%3Cbr/%3E&start_price=${p}&end_price=${p}`;
-    }
-    let app = new Vue({
-        el: '#app',
-        data: {
-            parameters: {
-                query: '翡翠原石',
-                price: 500,
-            }
-        },
-        mounted() {
-            if (localStorage['parameters.query']) {
-                this.parameters.query = localStorage['parameters.query'];
-            }
-            if (localStorage['parameters.price']) {
-                this.parameters.price = localStorage['parameters.price'];
-            }
-            startUpdateQR();
-        },
-        computed: {
-            url() {
-                return getUrl(this.parameters);
-            }
-        },
-        watch: {
-            'parameters.query'(value) {
-                localStorage['parameters.query'] = value;
-                startUpdateQR();
-            },
-            'parameters.price'(value) {
-                localStorage['parameters.price'] = value;
-                startUpdateQR();
+    // Utilities.
+    function combineObject(target, values) {
+        for (let p in target) {
+            if (values.hasOwnProperty(p)) {
+                // object to object: null, [], {}
+                if (typeof target[p] == 'object' && typeof values[p] == 'object') {
+                    if (target[p] == null) {
+                        target[p] = values[p];
+                    } else if (values[p] == null) {
+                        // do nothing
+                    } else {
+                        combineObject(target[p], values[p]);
+                    }
+                }
+                // non-object to non-object: false, 0, '', function, undefined
+                if (typeof target[p] != 'object' && typeof values[p] != 'object') {
+                    target[p] = values[p];
+                }
             }
         }
-    })
+    }
+    function parseHash(hash) {
+        try {
+            return JSON.parse(decodeURIComponent(hash.substr(1)));
+        } catch (err) {
+            return {};
+        }
+    }
+    function buildHash(persisted) {
+        return '#' + encodeURIComponent(JSON.stringify(persisted));
+    }
+    // Page logic.
+    let parameters = [
+        {
+            key: 'q',
+            type: 'string',
+            name: '搜索词',
+            default: '翡翠原石',
+        },
+        {
+            key: 'start_price',
+            type: 'number',
+            name: '最低价',
+            default: 500,
+        },
+        {
+            key: 'end_price',
+            type: 'number',
+            name: '最高价',
+            default: 500,
+        },
+        {
+            key: 'loc',
+            type: 'single',
+            name: '地域',
+            default: null,
+            values: [
+                { name: "上海", value: "上海" },
+                { name: "东莞", value: "东莞" },
+                { name: "云南", value: "云南" },
+                { name: "北京", value: "北京" },
+                { name: "南京", value: "南京" },
+                { name: "南昌", value: "南昌" },
+                { name: "厦门", value: "厦门" },
+                { name: "台湾", value: "台湾" },
+                { name: "合肥", value: "合肥" },
+                { name: "吉林", value: "吉林" },
+                { name: "四川", value: "四川" },
+                { name: "大连", value: "大连" },
+                { name: "天津", value: "天津" },
+                { name: "宁夏", value: "宁夏" },
+                { name: "宁波", value: "宁波" },
+                { name: "安徽", value: "安徽" },
+                { name: "山东", value: "山东" },
+                { name: "山西", value: "山西" },
+                { name: "广东", value: "广东" },
+                { name: "广州", value: "广州" },
+                { name: "广西", value: "广西" },
+                { name: "成都", value: "成都" },
+                { name: "新疆", value: "新疆" },
+                { name: "无锡", value: "无锡" },
+                { name: "昆明", value: "昆明" },
+                { name: "杭州", value: "杭州" },
+                { name: "武汉", value: "武汉" },
+                { name: "江苏", value: "江苏" },
+                { name: "沈阳", value: "沈阳" },
+                { name: "河北", value: "河北" },
+                { name: "河南", value: "河南" },
+                { name: "济南", value: "济南" },
+                { name: "浙江", value: "浙江" },
+                { name: "海南", value: "海南" },
+                { name: "海外", value: "海外" },
+                { name: "深圳", value: "深圳" },
+                { name: "温州", value: "温州" },
+                { name: "湖北", value: "湖北" },
+                { name: "湖南", value: "湖南" },
+                { name: "澳门", value: "澳门" },
+                { name: "甘肃", value: "甘肃" },
+                { name: "福建", value: "福建" },
+                { name: "苏州", value: "苏州" },
+                { name: "西安", value: "西安" },
+                { name: "西藏", value: "西藏" },
+                { name: "贵州", value: "贵州" },
+                { name: "辽宁", value: "辽宁" },
+                { name: "郑州", value: "郑州" },
+                { name: "重庆", value: "重庆" },
+                { name: "长春", value: "长春" },
+                { name: "长沙", value: "长沙" },
+                { name: "陕西", value: "陕西" },
+                { name: "青岛", value: "青岛" },
+                { name: "青海", value: "青海" },
+                { name: "香港", value: "香港" },
+                { name: "内蒙古", value: "内蒙古" },
+                { name: "哈尔滨", value: "哈尔滨" },
+                { name: "江浙沪", value: "江浙沪" },
+                { name: "珠三角", value: "珠三角" },
+                { name: "石家庄", value: "石家庄" },
+                { name: "黑龙江", value: "黑龙江" },
+            ],
+        },
+        {
+            key: 'filter',
+            type: 'multi',
+            name: '服务',
+            default: [],
+            values: [
+                { name: "免运费", value: "service_myf" },
+                { name: "天猫", value: "tab_mall" },
+                { name: "全球购", value: "service_hwsp" },
+                { name: "消费者保障", value: "service_xfzbz" },
+                { name: "手机专享价", value: "service_sjzx" },
+                { name: "淘金币", value: "service_tjb" },
+                { name: "货到付款", value: "service_hdfk" },
+                { name: "7天退换", value: "service_qtth" },
+                { name: "促销", value: "tab_discount" },
+            ],
+            handler(value) {
+                return value.join(';');
+            }
+        },
+    ];
+    let keyToIndex = {};
+    for (let i in parameters) {
+        keyToIndex[parameters[i].key] = i;
+    }
+
+    function getUrl(persisted) {
+        if (persisted.configuration.editUrl) {
+            return persisted.configuration.customUrl;
+        }
+        let params = [];
+        for (let k in persisted.parameters) {
+            if (!persisted.parameters[k].enable) continue;
+            const v = persisted.parameters[k].value;
+            if (v == null) continue;
+            const p = parameters[keyToIndex[k]];
+            // console.log(`key = ${k}, p = ${p}, index = ${keyToIndex[k]}`);
+            const str = p.handler ? p.handler(v) : v;
+            params.push(`${p.key}=${encodeURIComponent(str)}`);
+        }
+        return `https://s.m.taobao.com/h5?${params.join('&')}`;
+    }
+    function setQR(element, data) {
+        var qr = document.getElementById(element);
+        if (qr) {
+            while (qr.firstChild) {
+                qr.removeChild(qr.firstChild);
+            }
+            const url = getUrl(app.persisted);
+            new QRCode(qr, data);
+        }
+
+    }
+    function updateQR() {
+        setQR('qrcode', getUrl(app.persisted));
+    }
     let timer = null;
     function startUpdateQR() {
         if (timer) {
@@ -89,18 +270,60 @@
         }
         timer = setTimeout(updateQR, 500);
     }
-    function updateQR() {
-        var qr = document.getElementById("qrcode");
-        while (qr.firstChild) {
-            qr.removeChild(qr.firstChild);
+    function buildParameters() {
+        let result = {};
+        for (let i in parameters) {
+            const p = parameters[i];
+            result[p.key] = { value: p.default, enable: p.default ? true : false };
         }
-        const url = getUrl(app.parameters);
-        new QRCode(qr, url);
-        document.getElementById("taobao").setAttribute("src", url);
+        return result;
     }
-    new QRCode(document.getElementById("self"), {
-        text: location.href,
-        width: 128, height: 128
+    let app = new Vue({
+        el: '#app',
+        data: {
+            persisted: {
+                configuration: {
+                    editUrl: false,
+                    customUrl: '',
+                    showQr: true,
+                    showIframe: true,
+                },
+                parameters: buildParameters(),
+            },
+            keyList: parameters.map(p => p.key),
+        },
+        mounted() {
+            if (typeof localStorage != 'undefined' && localStorage && typeof localStorage.persisted == 'string') {
+                combineObject(this.persisted, JSON.parse(localStorage.persisted));
+            }
+            if (location.hash) {
+                combineObject(this.persisted, parseHash(location.hash));
+            }
+            startUpdateQR();
+        },
+        computed: {
+            url() {
+                return getUrl(this.persisted);
+            }
+        },
+        watch: {
+            'persisted': {
+                handler(value) {
+                    location.hash = buildHash(value);
+                    localStorage = JSON.stringify(value);
+                    startUpdateQR();
+                },
+                deep: true,
+            },
+        },
+        methods: {
+            getProperty(key) {
+                return parameters[keyToIndex[key]];
+            },
+            showQr() {
+                setQR('selfQr', location.href);
+            }
+        }
     });
 </script>
 
