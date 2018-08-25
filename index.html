@@ -224,7 +224,7 @@
                 { name: "促销", value: "tab_discount" },
             ],
             handler(value) {
-                return value.join(';');
+                return value.length == 0 ? null : value.join(';');
             }
         },
     ];
@@ -245,6 +245,7 @@
             const p = parameters[keyToIndex[k]];
             // console.log(`key = ${k}, p = ${p}, index = ${keyToIndex[k]}`);
             const str = p.handler ? p.handler(v) : v;
+            if (str == null) continue;
             params.push(`${p.key}=${encodeURIComponent(str)}`);
         }
         return `https://s.m.taobao.com/h5?${params.join('&')}`;
@@ -286,13 +287,17 @@
                     editUrl: false,
                     customUrl: '',
                     showQr: true,
-                    showIframe: true,
+                    showIframe: false,
                 },
                 parameters: buildParameters(),
             },
             keyList: parameters.map(p => p.key),
         },
         mounted() {
+            const defaultConfig = {
+                showIframe: true,
+            };
+            combineObject(this.persisted.configuration, defaultConfig);
             if (typeof localStorage != 'undefined' && localStorage && typeof localStorage.persisted == 'string') {
                 combineObject(this.persisted, JSON.parse(localStorage.persisted));
             }
