@@ -49,8 +49,16 @@
         el: '#app',
         data: {
             parameters: {
-                query: '',
-                price: 0,
+                query: '翡翠原石',
+                price: 500,
+            }
+        },
+        mounted() {
+            if (localStorage['parameters.query']) {
+                this.parameters.query = localStorage['parameters.query'];
+            }
+            if (localStorage['parameters.price']) {
+                this.parameters.price = localStorage['parameters.price'];
             }
         },
         computed: {
@@ -59,10 +67,12 @@
             }
         },
         watch: {
-            'parameters.query'() {
+            'parameters.query'(value) {
+                localStorage['parameters.query'] = value;
                 startUpdateQR();
             },
-            'parameters.price'() {
+            'parameters.price'(value) {
+                localStorage['parameters.price'] = value;
                 startUpdateQR();
             }
         }
