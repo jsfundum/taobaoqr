@@ -1,0 +1,24 @@
+{
+  "name": "taobaoqr",
+  "version": "1.0.0",
+  "description": "Taobao QR code generator.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsfundum/taobaoqr.git"
+  },
+  "keywords": [
+    "Taobao",
+    "QR",
+    "code"
+  ],
+  "author": "JS Fan",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/jsfundum/taobaoqr/issues"
+  },
+  "homepage": "https://github.com/jsfundum/taobaoqr#readme"
+}
