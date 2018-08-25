@@ -9,9 +9,13 @@
 
 <body>
     <div id="app" style="max-width: 960px; margin: 0 auto;">
-
-        <h1>淘宝QR生成器</h1>
-        <div style="margin: 20px 0;"></div>
+        <div>
+            <div style="float:left">
+                <h1>淘宝QR生成器</h1>
+            </div>
+            <div id="self" style="float:right"></div>
+        </div>
+        <div style="margin: 20px 0; clear: both"></div>
         <el-row>
             <el-col :span="11">
                 查询词：
@@ -94,6 +98,10 @@
         new QRCode(qr, url);
         document.getElementById("taobao").setAttribute("src", url);
     }
+    new QRCode(document.getElementById("self"), {
+        text: location.href,
+        width: 128, height: 128
+    });
 </script>
 
 </html>
