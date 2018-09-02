@@ -60,7 +60,7 @@
                     <span v-if="persisted.configuration.editUrl">
                         链接: <el-input v-model="persisted.configuration.customUrl" placeholder="链接"></el-input>
                     </span>
-                    <!-- <el-switch style="margin: 0 10px 0 0" v-model="persisted.configuration.editUrl"></el-switch> -->
+                    <el-switch style="margin: 0 10px 0 0" v-model="persisted.configuration.editUrl"></el-switch>
                 </div>
                 <div style="margin: 20px 0"></div>
                 <div>
@@ -125,6 +125,12 @@
             type: 'string',
             name: '搜索词',
             default: '翡翠原石',
+        },
+        {
+            key: 'uniqpid',
+            type: 'number',
+            name: 'uniqpid',
+            default: '',
         },
         {
             key: 'start_price',
