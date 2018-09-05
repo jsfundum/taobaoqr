@@ -108,41 +108,31 @@
             }
         }
     }
-    function parseHash(hash) {
-        try {
-            return JSON.parse(decodeURIComponent(hash.substr(1)));
-        } catch (err) {
-            return {};
-        }
-    }
-    function buildHash(persisted) {
-        return '#' + encodeURIComponent(JSON.stringify(persisted));
-    }
     // Page logic.
     let parameters = [
         {
             key: 'q',
             type: 'string',
             name: '搜索词',
-            default: '翡翠原石',
+            default: '女',
         },
         {
             key: 'uniqpid',
             type: 'number',
             name: 'uniqpid',
-            default: '',
+            default: -603636663,
         },
         {
             key: 'start_price',
             type: 'number',
             name: '最低价',
-            default: 500,
+            default: null,
         },
         {
             key: 'end_price',
             type: 'number',
             name: '最高价',
-            default: 500,
+            default: null,
         },
         {
             key: 'loc',
@@ -230,6 +220,7 @@
                 { name: "促销", value: "tab_discount" },
             ],
             handler(value) {
+                console.log('filter: ', value);
                 return value.length == 0 ? null : value.join(';');
             }
         },
@@ -281,10 +272,61 @@
         let result = {};
         for (let i in parameters) {
             const p = parameters[i];
-            result[p.key] = { value: p.default, enable: p.default ? true : false };
+            result[p.key] = {
+                value: p.default,
+                enable: p.default && (!Array.isArray(p.default) || p.default.length != 0) ? true : false
+            };
         }
         return result;
     }
+
+    let defaultConfiguration = {
+        editUrl: false,
+        customUrl: '',
+        showQr: true,
+        showIframe: false,
+    };
+    let defaultParameters = buildParameters();
+
+    function parseHash(hash) {
+        try {
+            return JSON.parse(decodeURIComponent(hash.substr(1)));
+        } catch (err) {
+            return {};
+        }
+    }
+    function hashFilter(persisted) {
+        let result = {};
+        let config = {};
+        for (let k in persisted.configuration) {
+            if (persisted.configuration[k] != defaultConfiguration[k]) {
+                config[k] = persisted.configuration[k];
+            }
+        }
+        if (Object.getOwnPropertyNames(config).length > 0) {
+            result.configuration = config;
+        }
+        let params = {};
+        for (let k in persisted.parameters) {
+            if (persisted.parameters[k].enable || persisted.parameters[k].enable != defaultParameters[k].enable) {
+                if (persisted.parameters[k].enable) {
+                    params[k] = persisted.parameters[k];
+                } else {
+                    params[k] = { enable: false };
+                }
+            }
+        }
+        if (Object.getOwnPropertyNames(params).length > 0) {
+            result.parameters = params;
+        }
+        return result;
+    }
+    function buildHash(persisted) {
+        let values = hashFilter(persisted);
+        // console.log('hash: ', JSON.parse(JSON.stringify(values)));
+        return '#' + encodeURIComponent(JSON.stringify(values));
+    }
+
     let app = new Vue({
         el: '#app',
         data: {
@@ -300,10 +342,7 @@
             keyList: parameters.map(p => p.key),
         },
         mounted() {
-            const defaultConfig = {
-                showIframe: true,
-            };
-            combineObject(this.persisted.configuration, defaultConfig);
+            combineObject(this.persisted.configuration, defaultConfiguration);
             if (typeof localStorage != 'undefined' && localStorage && typeof localStorage.persisted == 'string') {
                 combineObject(this.persisted, JSON.parse(localStorage.persisted));
             }
@@ -315,6 +354,9 @@
         computed: {
             url() {
                 return getUrl(this.persisted);
+            },
+            hash() {
+                return JSON.stringify(hashFilter(this.persisted));
             }
         },
         watch: {

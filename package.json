@@ -1,6 +1,6 @@
 {
   "name": "taobaoqr",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Taobao QR code generator.",
   "files": [
     "index.html",
